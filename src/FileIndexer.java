@@ -22,6 +22,7 @@ public class FileIndexer {
 	public static int timeOffset = -5;			//change as necessary to fit your time zone, currently set to GMT -5
 	
 	public static void main(String[] args) {
+		String version = "v1.01";
 		
 		//set directory to analyze and the output file
 		printMessage("Begin execution of " + FileIndexer.class.getName() + " " + version);
