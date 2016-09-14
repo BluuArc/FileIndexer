@@ -48,3 +48,6 @@ Temporary Items
 
 # Custom
 *.jar
+*.class
+bin/SimplePictureProperties.txt
+*.class

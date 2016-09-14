@@ -19,22 +19,33 @@ import java.time.ZoneOffset;
 
 public class FileIndexer {
 	public static boolean debugOutput = false;
-	public static int timeOffset = -5;			//change as necessary to fit your time zone
+	public static int timeOffset = -5;			//change as necessary to fit your time zone, currently set to GMT -5
 	
 	public static void main(String[] args) {
-		String version = "v1.0";
 		
-		//set directory to analyze and output file
+		//set directory to analyze and the output file
 		printMessage("Begin execution of " + FileIndexer.class.getName() + " " + version);
 		printMessage("Choose the root directory to analyze.");
 		String dir = FileChooser.pickAFile();
 		setDirectory(dir);
 		dir = getDirectory(dir);
 		String outFile = FileChooser.getMediaDirectory() + "\\_list." + currentDate() +".csv";
+		
+		//output file check (from DBReader)
+		File f = new File(outFile);
+		if(f.exists()){//delete file if it exists
+			if(!f.delete()){
+				System.err.println("Error: Deletion of [" + outFile + "] failed. Exiting program.");
+				System.exit(1);
+			}
+			debug("Deleted old file [" + outFile + "]");
+		}
 
-		//read directory
+
+		//get list of file and folder names from a directory
 		File[] listFiles = readFolder(dir);
 		
+		//no point in reading an empty directory
 		if(listFiles.length == 0){
 			printMessage("ERROR: no files in directory. Terminating program.");
 			return;
@@ -43,14 +54,15 @@ public class FileIndexer {
 		//index files
 		try {
 			printMessage("Begin analysis of [" + dir + "\\]");
-			appendToFile(outFile, "file path,created,last accessed,last modified,\n");
-			indexFiles(listFiles, FileChooser.getMediaDirectory(), outFile, 0);
+			appendToFile(outFile, "file path,created,last accessed,last modified,\n");	//append headers to file
+			indexFiles(listFiles, FileChooser.getMediaDirectory(), outFile, 0);			//index directory
 			printMessage("Finished analysis of [" + dir + "\\]");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
 		printMessage("Output saved to [" + outFile + "]\nDone.");
+		System.exit(0);
 	}//end main
 	
 	// method to setMediaPath using a picture, assuming that the images are in
@@ -71,9 +83,10 @@ public class FileIndexer {
 	//method to index the files in a file array
 	public static void indexFiles(File[] list, String rootDir, String outFile, int depth) throws IOException{
 		debug("Indexing files");
+		//go through file list
 		for(int i = 0; i < list.length; ++i){
 			debug("Checking [" + list[i].toString() + "]");
-			if(list[i].isFile()){
+			if(list[i].isFile()){//read attributes if file
 				debug("It's a file");
 				//get directory (relative to rootDir)
 				String data = list[i].toString().replace(rootDir, "") + ",";
@@ -95,7 +108,7 @@ public class FileIndexer {
 				
 				//append to output file
 				appendToFile(outFile, data);
-			}else if(list[i].isDirectory()){//end if isFile
+			}else if(list[i].isDirectory()){//recursively analyze if directory
 				debug("It's a directory");
 				printMessage(depthSpaces(depth+1) + "Analyzing [" + list[i].toString().replace(rootDir, "") + "\\]");
 				File[] newDir = readFolder(list[i].toString());
@@ -103,7 +116,7 @@ public class FileIndexer {
 			}else{//end if isDirectory()
 				debug("I don't know what [" + list[i] + "] is.");
 				return;
-			}
+			}//end file/directory check
 		}//end for each index
 	}//end indexFiles
 	
@@ -114,6 +127,7 @@ public class FileIndexer {
 		Path p = f.toPath();
 		byte[] data = s.getBytes();
 		
+		//try to write string to file
 		try (OutputStream out = new BufferedOutputStream(
 	      Files.newOutputStream(p, StandardOpenOption.CREATE, StandardOpenOption.APPEND))) {
 	      out.write(data, 0, data.length);
@@ -125,9 +139,8 @@ public class FileIndexer {
 	//method to format a time stamp
 	//sample input: 2016-01-19T01:46:31.009804Z
 	public static String formatTimeStamp(Instant t){
-		String s = t.atOffset(ZoneOffset.ofHours(timeOffset)).toString();
-		String output = s.substring(0, s.lastIndexOf(":")).replace("T", " ");
-		//remove T and Z from string
+		String s = t.atOffset(ZoneOffset.ofHours(timeOffset)).toString();		//get time as string
+		String output = s.substring(0, s.lastIndexOf(":")).replace("T", " ");	//remove T and Z from string
 		return output;
 	}//end formatTimeStamp
 	
@@ -140,9 +153,11 @@ public class FileIndexer {
 	public static String depthSpaces(int count){
 		String output = "";
 		
+		//return empty string if count isn't valid
 		if(count <= 0)
 			return output;
 		
+		//add spaces according to count
 		for(int i = 0; i < count; ++i){
 			output += " ";
 		}
